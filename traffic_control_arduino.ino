@@ -24,11 +24,9 @@
     West      8         13           9
 
   For EACH LED:
-    Arduino pin -> 220-330 ohm resistor -> LED long leg (anode)
+    Arduino pin ->  resistor -> LED long leg (anode)
     LED short leg (cathode) -> Arduino GND
 
-  All GND wires can share the same GND rail on your breadboard, as long as
-  that rail connects back to an actual GND pin on the Arduino.
 */
 
 const uint8_t NUM_LANES = 4;
