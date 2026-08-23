@@ -1,0 +1,15 @@
+# Core dashboard. Runs with no camera and no Arduino attached.
+flask==3.0.3
+
+# Serial link to the Arduino. Optional: without it the dashboard reports
+# "pyserial not installed" and stays in no-hardware mode.
+pyserial==3.5
+
+# Video decoding for the four lane feeds. Optional: without it every lane
+# reports status "unavailable" and the operator's manual counts are used.
+opencv-python==4.10.0.84
+
+# Vehicle detection. Optional: without it the feeds still stream but every
+# lane's count_source stays "manual".
+ultralytics==8.2.103
+torch>=2.2
