@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Traffic Control</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon"><span></span><span></span></div>
+        <div>
+          <div class="eyebrow">AI TRAFFIC MONITORING SYSTEM</div>
+          <h1>Smart Traffic Control</h1>
+          <p>Adaptive signal control · four independent camera feeds</p>
+        </div>
+      </div>
+      <div class="system-status">
+        <div class="status-chip" id="link-pill"><i></i><span id="link-pill-text">CONNECTING…</span></div>
+        <div class="status-chip" id="hw-pill"><i></i><span id="hw-pill-text">Checking hardware…</span></div>
+        <div class="cycle-chip">CYCLE <strong id="cycle-number">—</strong></div>
+      </div>
+    </header>
+
+    <div class="alert-bar" id="alert-bar" hidden></div>
+
+    <main>
+      <section class="camera-wall">
+        <div class="section-heading">
+          <div>
+            <span class="section-kicker">LIVE CAMERA WALL</span>
+            <h2>Traffic feeds</h2>
+          </div>
+          <div class="live-indicator"><span></span> <span id="detector-label">DETECTOR —</span></div>
+        </div>
+        <div class="camera-grid" id="camera-grid"></div>
+      </section>
+
+      <section class="control-strip">
+        <div class="engine-card">
+          <div class="engine-head">
+            <div>
+              <span class="section-kicker">ADAPTIVE ENGINE</span>
+              <h2>Signal decision</h2>
+            </div>
+            <span class="engine-state" id="engine-state">—</span>
+          </div>
+          <div class="decision-grid">
+            <div class="decision-main">
+              <span>Current phase</span>
+              <strong id="priority-lane">—</strong>
+              <small id="priority-reason">Waiting for the first phase…</small>
+            </div>
+            <div class="decision-metric"><span>GREEN</span><strong id="priority-duration">—</strong></div>
+            <div class="decision-metric"><span>COUNTDOWN</span><strong id="global-countdown">—</strong></div>
+            <div class="decision-metric"><span>NEXT</span><strong id="next-lane">—</strong></div>
+          </div>
+          <div class="decision-rule" id="decision-rule">green = 10 + 0.5 × vehicles, capped at 60s · lane order is fixed round robin</div>
+          <div class="decision-bars" id="decision-bars"></div>
+        </div>
+
+        <div class="intersection-card">
+          <div class="mini-title">LIVE SIGNAL STATE</div>
+          <div class="intersection-map" id="intersection-map">
+            <div class="signal-node node-1"><span class="node-label">LANE 1</span><i></i></div>
+            <div class="signal-node node-2"><span class="node-label">LANE 2</span><i></i></div>
+            <div class="signal-core"><span id="core-phase">ALL RED</span><strong id="core-lane">—</strong><b id="core-timer">—</b></div>
+            <div class="signal-node node-3"><span class="node-label">LANE 3</span><i></i></div>
+            <div class="signal-node node-4"><span class="node-label">LANE 4</span><i></i></div>
+          </div>
+          <div class="wire-string">SERIAL <code id="signal-string">RRRR</code></div>
+        </div>
+      </section>
+
+      <section class="operator-section">
+        <div class="operator-head">
+          <div>
+            <span class="section-kicker">OPERATOR CONTROL</span>
+            <h2>Mode &amp; manual override</h2>
+          </div>
+          <div class="mode-switch" role="group" aria-label="Control mode">
+            <button class="mode-btn" id="mode-auto" data-mode="auto">AUTO</button>
+            <button class="mode-btn" id="mode-manual" data-mode="manual">MANUAL</button>
+          </div>
+        </div>
+        <div class="operator-actions">
+          <div class="manual-lane-buttons" id="manual-lane-buttons"></div>
+          <div class="operator-buttons">
+            <button class="primary-btn" id="btn-recalculate">END PHASE &amp; RECALCULATE</button>
+            <button class="secondary-btn" id="btn-recalibrate-all">RECALIBRATE ALL FEEDS</button>
+          </div>
+        </div>
+        <div class="hw-message" id="operator-message">Auto mode: lanes rotate 1 → 2 → 3 → 4; vehicle counts set the green duration only.</div>
+
+        <div class="count-grid" id="count-grid"></div>
+      </section>
+
+      <section class="bottom-grid">
+        <div class="panel hardware-panel">
+          <div class="panel-title"><div><span class="section-kicker">HARDWARE</span><h2>Arduino link</h2></div><span class="tiny-status" id="hw-state-label">NO HARDWARE</span></div>
+          <div class="hardware-controls">
+            <select id="port-select" aria-label="Serial port"></select>
+            <button class="secondary-btn" id="btn-refresh-ports">Refresh</button>
+            <button class="primary-btn compact" id="btn-connect">Connect</button>
+            <button class="secondary-btn" id="btn-disconnect">Disconnect</button>
+          </div>
+          <div class="hw-message" id="hw-message">No hardware connected. The dashboard runs without it.</div>
+          <div class="wire-log">
+            <div><span>LAST SENT</span><code id="hw-last-sent">—</code></div>
+            <div><span>COUNTER</span><code id="hw-last-counter">—</code></div>
+            <div><span>BOARD REPLY</span><code id="hw-last-reply">—</code></div>
+          </div>
+        </div>
+
+        <div class="panel stats-panel">
+          <div class="panel-title"><div><span class="section-kicker">SYSTEM LOG</span><h2>Traffic statistics</h2></div></div>
+          <div class="stats-row">
+            <div><strong id="stat-transitions">0</strong><span>Green phases</span></div>
+            <div><strong id="stat-vehicles">0</strong><span>Vehicles logged</span></div>
+            <div><strong id="stat-avg">0.0s</strong><span>Avg green</span></div>
+          </div>
+          <div class="history" id="history"></div>
+        </div>
+      </section>
+
+      <section class="panel benchmark-panel">
+        <div class="panel-title">
+          <div><span class="section-kicker">SIMULATION / TEST MODE</span><h2>Fixed timer vs adaptive</h2></div>
+          <div class="operator-buttons">
+            <button class="primary-btn compact" id="btn-simulate">RUN SIMULATION</button>
+            <button class="secondary-btn" id="btn-clear-simulation">CLEAR</button>
+          </div>
+        </div>
+        <div class="hw-message" id="sim-note">
+          Offline discrete-event model. It never touches the live signal or the serial port, and it runs the
+          same round-robin + 10&nbsp;+&nbsp;0.5×count algorithm as the live controller.
+        </div>
+        <div class="comparison-grid" id="comparison-grid" hidden>
+          <div class="cmp-card"><span>FIXED TIMER</span><strong id="cmp-fixed">—</strong><small>vehicle-seconds waited</small></div>
+          <div class="cmp-card adaptive"><span>ADAPTIVE</span><strong id="cmp-adaptive">—</strong><small>vehicle-seconds waited</small></div>
+          <div class="cmp-card"><span>REDUCTION</span><strong id="cmp-pct">—</strong><small>lower waiting is better</small></div>
+        </div>
+        <div class="cmp-model" id="cmp-model" hidden></div>
+        <div class="cmp-trace" id="cmp-trace" hidden></div>
+      </section>
+    </main>
+
+    <footer><span>LIVE STATE · SERVER-SENT EVENTS</span><span>SMART TRAFFIC CONTROL</span></footer>
+  </div>
+
+  <template id="camera-template">
+    <article class="camera-card">
+      <div class="camera-feed">
+        <img class="camera-video" alt="" decoding="async">
+        <div class="feed-vignette"></div>
+        <div class="feed-top">
+          <span class="camera-name">LANE 1</span>
+          <span class="live-tag"><i></i> <span class="live-text">LIVE</span></span>
+        </div>
+        <div class="feed-bottom">
+          <div>
+            <span class="hud-label">VEHICLE COUNT</span>
+            <strong class="feed-count">0</strong>
+            <span class="hud-label feed-source">—</span>
+          </div>
+          <div class="signal-readout"><span class="feed-signal-dot"></span><strong class="feed-signal">RED</strong></div>
+        </div>
+        <div class="video-missing">
+          <strong class="missing-title">NO VIDEO SIGNAL</strong>
+          <small class="missing-detail"></small>
+        </div>
+      </div>
+      <div class="camera-meta">
+        <div><span>ALLOCATED GREEN</span><strong class="feed-duration">—</strong></div>
+        <div><span>STATUS</span><strong class="feed-status">—</strong></div>
+        <div><span>FEED</span><strong class="feed-fps">—</strong></div>
+      </div>
+      <div class="camera-controls">
+        <select class="video-select" aria-label="Video source"></select>
+        <button class="secondary-btn compact lane-recalibrate">RECALIBRATE</button>
+      </div>
+    </article>
+  </template>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
